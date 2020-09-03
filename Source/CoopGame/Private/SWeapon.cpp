@@ -3,10 +3,13 @@
 
 #include "SWeapon.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "CoopGame/CoopGame.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "TimerManager.h"
 
 static int32 DebugWeaponDrawing = 0;
 FAutoConsoleVariableRef CVARDebugWeaponDrawing (
@@ -24,6 +27,15 @@ ASWeapon::ASWeapon()
 
 	MuzzleFlashSocketName = "MuzzleFlashSocket";
 	TracerTargetName = "BeamEnd";
+	BaseDamage = 20.f;
+	HeadShotMultiplier = 4.f;
+	RateOfFire = 600.f;
+}
+
+void ASWeapon::BeginPlay()
+{
+	Super::BeginPlay();
+	TimeBetweenShots = 60.f / RateOfFire;
 }
 
 void ASWeapon::Fire()
@@ -47,19 +59,44 @@ void ASWeapon::Fire()
 	QueryParams.AddIgnoredActor(MyOwner);
 	QueryParams.AddIgnoredActor(this);
 	QueryParams.bTraceComplex = true;
+	QueryParams.bReturnPhysicalMaterial = true;
 
 	// Particle "Target" parameter
 	FVector TracerEndPoint = TraceEnd;
 
 	FHitResult Hit;
-	if (GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
+	if (GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, COLLISION_WEAPON, QueryParams))
 	{
 		// Blocking hit! Process damage
 		AActor* HitActor = Hit.GetActor();
-		UGameplayStatics::ApplyPointDamage(HitActor, 20.f, ShotDirection, Hit, PC, this, DamageType);
-		if (ImpactEffect)
+
+		EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
+
+		float ActualDamage = BaseDamage;
+
+		if (SurfaceType == SURFACE_FLESH_VULNERABLE)
 		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
+			ActualDamage = BaseDamage * HeadShotMultiplier;
+		}
+
+		UGameplayStatics::ApplyPointDamage(HitActor, ActualDamage, ShotDirection, Hit, PC, this, DamageType);
+
+		UParticleSystem* SelectedImpactEffect = nullptr;
+
+		switch (SurfaceType)
+		{
+		case SURFACE_FLESH_DEFAULT:
+		case SURFACE_FLESH_VULNERABLE:
+			SelectedImpactEffect = FleshImpactEffect;
+			break;
+		default:
+			SelectedImpactEffect = DefaultImpactEffect;
+			break;
+		}
+
+		if (SelectedImpactEffect)
+		{
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedImpactEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
 		}
 
 		TracerEndPoint = Hit.ImpactPoint;
@@ -71,6 +108,20 @@ void ASWeapon::Fire()
 	}
 
 	PlayFireEffect(TracerEndPoint);
+
+	LastFireTime = GetWorld()->GetTimeSeconds();
+}
+
+void ASWeapon::StartFire()
+{
+	float FirstDelay = FMath::Max(LastFireTime + TimeBetweenShots - GetWorld()->GetTimeSeconds(), 0.f);
+
+	GetWorldTimerManager().SetTimer(TimerHandle_TimeBetweenShots, this, &ASWeapon::Fire, TimeBetweenShots, true, FirstDelay);
+}
+
+void ASWeapon::StopFire()
+{
+	GetWorldTimerManager().ClearTimer(TimerHandle_TimeBetweenShots);
 }
 
 void ASWeapon::PlayFireEffect(FVector TracerEndPoint)
