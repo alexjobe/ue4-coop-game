@@ -41,14 +41,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	UParticleSystem* TracerEffect;
 
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TSubclassOf<UCameraShake> FireCamShake;
 
+	void PlayFireEffect(FVector TracerEndPoint);
+
+public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	virtual void Fire();
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
 
 };

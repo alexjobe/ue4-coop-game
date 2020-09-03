@@ -8,24 +8,22 @@
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 
+static int32 DebugWeaponDrawing = 0;
+FAutoConsoleVariableRef CVARDebugWeaponDrawing (
+	TEXT("COOP.DebugWeapons"), 
+	DebugWeaponDrawing, 
+	TEXT("Draw debug lines for weapons"), 
+	ECVF_Cheat
+);
+
 // Sets default values
 ASWeapon::ASWeapon()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-
 	MeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComp"));
 	RootComponent = MeshComp;
 
 	MuzzleFlashSocketName = "MuzzleFlashSocket";
 	TracerTargetName = "BeamEnd";
-}
-
-// Called when the game starts or when spawned
-void ASWeapon::BeginPlay()
-{
-	Super::BeginPlay();
-	
 }
 
 void ASWeapon::Fire()
@@ -67,6 +65,16 @@ void ASWeapon::Fire()
 		TracerEndPoint = Hit.ImpactPoint;
 	}
 
+	if (DebugWeaponDrawing)
+	{
+		DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::White, false, 1.f, 0, 1.f);
+	}
+
+	PlayFireEffect(TracerEndPoint);
+}
+
+void ASWeapon::PlayFireEffect(FVector TracerEndPoint)
+{
 	if (MuzzleEffect)
 	{
 		UGameplayStatics::SpawnEmitterAttached(MuzzleEffect, MeshComp, MuzzleFlashSocketName);
@@ -81,12 +89,16 @@ void ASWeapon::Fire()
 			TracerComp->SetVectorParameter(TracerTargetName, TracerEndPoint);
 		}
 	}
-}
 
-// Called every frame
-void ASWeapon::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
+	AActor* MyOwner = Cast<APawn>(GetOwner());
+	if (MyOwner)
+	{
+		APlayerController* PC = Cast<APlayerController>(MyOwner->GetInstigatorController());
+		if (PC)
+		{
+			PC->ClientPlayCameraShake(FireCamShake);
+		}
 
+	}
 }
 
