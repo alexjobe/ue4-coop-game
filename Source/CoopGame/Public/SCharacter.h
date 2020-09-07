@@ -40,6 +40,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Player", meta = (ClampMin = 0.1, ClampMax = 100))
 	float ZoomSpeed = 20.f;
 
+	UPROPERTY(Replicated)
 	ASWeapon* CurrentWeapon = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player")
@@ -49,7 +50,7 @@ protected:
 	FName WeaponAttachSocketName;
 
 	// Pawn died previously
-	UPROPERTY(BlueprintReadOnly, Category = "Player")
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Player")
 	bool bDied;
 
 	// Called when the game starts or when spawned
