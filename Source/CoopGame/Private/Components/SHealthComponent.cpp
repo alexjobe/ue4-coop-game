@@ -1,7 +1,7 @@
 // Made by Alex Jobe
 
 
-#include "Components//SHealthComponent.h"
+#include "Components/SHealthComponent.h"
 #include "Net/UnrealNetwork.h"
 
 // Sets default values for this component's properties
