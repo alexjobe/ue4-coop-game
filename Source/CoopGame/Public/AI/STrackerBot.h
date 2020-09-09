@@ -7,6 +7,8 @@
 #include "STrackerBot.generated.h"
 
 class USHealthComponent;
+class USphereComponent;
+class USoundCue;
 
 UCLASS()
 class COOPGAME_API ASTrackerBot : public APawn
@@ -24,25 +26,56 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, Category = "Components")
 	USHealthComponent* HealthComp;
 
-	// Next point in navigation path
-	FVector NextPathPoint;
-
-	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
-	float MovementForce;
+	UPROPERTY(VisibleDefaultsOnly, Category = "Components")
+	USphereComponent* SphereComp;
 
 	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	bool bUseVelocityChange;
 
 	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	float MovementForce;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	float RequiredDistanceToTarget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	float ExplosionRadius;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	float ExplosionDamage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	float SelfDamageInterval;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	float SelfDamageAmount;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	USoundCue* SelfDestructSound;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	UParticleSystem* ExplosionEffect;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	USoundCue* ExplodeSound;
+
+	FTimerHandle TimerHandle_DamageSelf;
 
 	// Dynamic material to pulse on damage
 	UMaterialInstanceDynamic* MatInstance;
+
+	bool bExploded;
+
+	bool bStartedSelfDestruct;
+
+	void DamageSelf();
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	FVector GetNextPathPoint();
+
+	void SelfDestruct();
 
 	UFUNCTION()
 	void HandleTakeDamage(USHealthComponent* HealthComponent, float Health, float HealthDelta, const UDamageType* DamageType, 
@@ -51,5 +84,7 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
 
 };
