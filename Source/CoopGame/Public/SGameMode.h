@@ -65,6 +65,8 @@ protected:
 
 	void SetWaveState(EWaveState NewState);
 
+	void RespawnDeadPlayers();
+
 public:
 
 	virtual void StartPlay() override;

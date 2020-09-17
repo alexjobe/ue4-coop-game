@@ -3,6 +3,7 @@
 
 #include "SGameMode.h"
 #include "Components/SHealthComponent.h"
+#include "EngineUtils.h"
 #include "SGameState.h"
 #include "SPlayerState.h"
 #include "TimerManager.h"
@@ -51,6 +52,8 @@ void ASGameMode::PrepareForNextWave()
 {
 	GetWorldTimerManager().SetTimer(TimerHandle_NextWaveStart, this, &ASGameMode::StartWave, TimeBetweenWaves, false);
 
+	RespawnDeadPlayers();
+
 	SetWaveState(EWaveState::WaitingToStart);
 }
 
@@ -62,9 +65,9 @@ void ASGameMode::CheckWaveState()
 
 	bool bIsAnyBotAlive = false;
 
-	for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; ++It)
+	for (TActorIterator<APawn> PawnIterator(GetWorld()); PawnIterator; ++PawnIterator)
 	{
-		APawn* TestPawn = It->Get();
+		APawn* TestPawn = *PawnIterator;
 
 		if (!TestPawn || TestPawn->IsPlayerControlled()) continue;
 
@@ -86,9 +89,9 @@ void ASGameMode::CheckWaveState()
 
 void ASGameMode::CheckAnyPlayerAlive()
 {
-	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	for (TActorIterator<APlayerController> PCIterator(GetWorld()); PCIterator; ++PCIterator)
 	{
-		APlayerController* PC = It->Get();
+		APlayerController* PC = *PCIterator;
 		if (PC && PC->GetPawn())
 		{
 			APawn* MyPawn = PC->GetPawn();
@@ -119,6 +122,18 @@ void ASGameMode::SetWaveState(EWaveState NewState)
 	if (ensureAlways(GS))
 	{
 		GS->SetWaveState(NewState);
+	}
+}
+
+void ASGameMode::RespawnDeadPlayers()
+{
+	for (TActorIterator<APlayerController> PCIterator(GetWorld()); PCIterator; ++PCIterator)
+	{
+		APlayerController* PC = *PCIterator;
+		if (PC && PC->GetPawn() == nullptr)
+		{
+			RestartPlayer(PC);
+		}
 	}
 }
 
