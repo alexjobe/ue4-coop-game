@@ -68,6 +68,10 @@ protected:
 
 	bool bStartedSelfDestruct;
 
+	FVector NextPathPoint;
+
+	FTimerHandle TimerHandle_RefreshPath;
+
 	void DamageSelf();
 
 	// Called when the game starts or when spawned
@@ -76,6 +80,8 @@ protected:
 	FVector GetNextPathPoint();
 
 	void SelfDestruct();
+
+	void RefreshPath();
 
 	UFUNCTION()
 	void HandleTakeDamage(USHealthComponent* HealthComponent, float Health, float HealthDelta, const UDamageType* DamageType, 
